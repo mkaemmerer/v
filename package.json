@@ -1,0 +1,22 @@
+{
+  "name": "vdom",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matt Kaemmerer <matthew.kaemmerer@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "baconjs": "^0.7.77",
+    "virtual-dom": "^2.1.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.3.0",
+    "gulp-header": "^1.7.1",
+    "gulp-indent": "^1.0.1",
+    "gulp-umd": "^0.2.0"
+  }
+}
