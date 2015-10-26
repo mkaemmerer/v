@@ -1,11 +1,11 @@
 'use strict';
 
-var gulp   = require('gulp');
-var babel  = require('gulp-babel');
-var indent = require('gulp-indent');
-var umd    = require('gulp-umd');
-var header = require('gulp-header');
-var pkg    = require('./package.json');
+var gulp       = require('gulp');
+var babel      = require('gulp-babel');
+var indent     = require('gulp-indent');
+var umd        = require('gulp-umd');
+var header     = require('gulp-header');
+var pkg        = require('./package.json');
 
 var banner = ['/**',
   ' * <%= pkg.name %>',
