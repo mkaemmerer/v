@@ -108,12 +108,16 @@ class ArrayWriter extends Writer {
     const children = this._children.map(w => w.each(array));
     return new ArrayWriter(this, children);
   }
+  $if(condition){
+    const children = this._children.map(w => w.$if(condition));
+    return new ArrayWriter(this, children);
+  }
+  $else(){
+    const children = this._children.map(w => w.$else());
+    return new ArrayWriter(this._parent.append(this), children);
+  }
 }
 
-function transpose(array){
-  return array[0]
-    .map((_, c) => array.map(r => r[c]));
-}
 function zip(a1, a2, f){
   let ret = [];
   a1.forEach((_,i) => {
