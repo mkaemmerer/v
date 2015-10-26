@@ -23,8 +23,8 @@ class Writer {
       .map(c => c._build())
       .reduce((x,y) => x.concat(y), []);
   }
-  append(/* w */){
-    //Abstract
+  append(writer){
+    return new Writer(this._parent, this._children.concat([writer]));
   }
   open(tagName){
     return new TagWriter(tagName, this);
@@ -40,8 +40,8 @@ class Writer {
     return new IfWriter(condition, this);
   }
   each(array){
-    const writers = array.map(() => new Writer(this));
-    return new ArrayWriter(writers, this);
+    const children = array.map(() => new Writer(this));
+    return new ArrayWriter(this, children);
   }
 }
 class TagWriter extends Writer {
@@ -88,38 +88,38 @@ class ElseWriter extends ConditionalWriter {
 
 //Each
 class ArrayWriter extends Writer {
-  constructor(array, parent, children = []){
-    super(parent, children);
-    this._array = array;
-  }
-  _build(){
-    return transpose(this._children)
-      .reduce((x,y) => x.concat(y), [])
-      .map(c => c._build())
-      .reduce((x,y) => x.concat(y), []);
-  }
   append(writer){
-    return new ArrayWriter(this._array, this._parent, this._children.concat([writer._array]));
+    const children = zip(this._children, writer._children, (w1,w2) => {
+      return w1.append(w2);
+    });
+    return new ArrayWriter(this._parent, children);
   }
   open(tagName){
-    const array = this._array
+    const children = this._children
       .map(w => w.open(tagName));
-    return new ArrayWriter(array, this, array);
+    return new ArrayWriter(this, children);
   }
   text(text){
-    const array = this._array
+    const children = this._children
       .map(w => w.text(text));
-    return new ArrayWriter(array, this._parent);
+    return new ArrayWriter(this._parent, children);
   }
   each(array){
-    const writers = this._array.map(w => w.each(array));
-    return new ArrayWriter(writers, this, writers);
+    const children = this._children.map(w => w.each(array));
+    return new ArrayWriter(this, children);
   }
 }
 
 function transpose(array){
   return array[0]
     .map((_, c) => array.map(r => r[c]));
+}
+function zip(a1, a2, f){
+  let ret = [];
+  a1.forEach((_,i) => {
+    ret.push(f(a1[i], a2[i]));
+  });
+  return ret;
 }
 
 
