@@ -23,17 +23,17 @@ class Writer {
       .map(c => c._build())
       .reduce((x,y) => x.concat(y), []);
   }
-  append(writer){
+  _append(writer){
     return new Writer(this._parent, this._children.concat([writer]));
   }
   open(tagName){
     return new TagWriter(tagName, this);
   }
   text(text){
-    return this.append(new WText(text));
+    return this._append(new WText(text));
   }
   close(){
-    return this._parent.append(this);
+    return this._parent._append(this);
   }
   //Control Flow
   $if(condition){
@@ -52,7 +52,7 @@ class TagWriter extends Writer {
   _build(){
     return [new VNode(this._tagName, {}, super._build())];
   }
-  append(writer){
+  _append(writer){
     return new TagWriter(this._tagName, this._parent, this._children.concat([writer]));
   }
   run(){
@@ -72,25 +72,25 @@ class ConditionalWriter extends Writer {
   }
 }
 class IfWriter extends ConditionalWriter {
-  append(writer){
+  _append(writer){
     return new IfWriter(this._condition, this._parent, this._children.concat([writer]));
   }
   //Control Flow
   $else(){
-    return new ElseWriter(!this._condition, this._parent.append(this));
+    return new ElseWriter(!this._condition, this._parent._append(this));
   }
 }
 class ElseWriter extends ConditionalWriter {
-  append(writer){
+  _append(writer){
     return new ElseWriter(this._condition, this._parent, this._children.concat([writer]));
   }
 }
 
 //Each
 class ArrayWriter extends Writer {
-  append(writer){
+  _append(writer){
     const children = zip(this._children, writer._children, (w1,w2) => {
-      return w1.append(w2);
+      return w1._append(w2);
     });
     return new ArrayWriter(this._parent, children);
   }
@@ -114,15 +114,15 @@ class ArrayWriter extends Writer {
   }
 }
 class IfArrayWriter extends ArrayWriter {
-  append(writer){
+  _append(writer){
     const children = zip(this._children, writer._children, (w1,w2) => {
-      return w1.append(w2);
+      return w1._append(w2);
     });
     return new IfArrayWriter(this._parent, children);
   }
   $else(){
     const children = this._children.map(w => w.$else());
-    return new ArrayWriter(this._parent.append(this), children);
+    return new ArrayWriter(this._parent._append(this), children);
   }
 }
 
