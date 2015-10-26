@@ -6,11 +6,76 @@
   </head>
 
   <body>
+    <script src="../node_modules/baconjs/dist/Bacon.js"></script>
     <script src="../node_modules/virtual-dom/dist/virtual-dom.js"></script>
     <script src="../dist/v.js"></script>
 
     <script type="text/javascript">
+      var e = v()
+        //Test tags
+        .open('h2').text('Tags').close()
+        .open('span').text('normal tag').close()
+        .open('ul')
+          .open('li').text('nested tag').close()
+        .close()
 
+        //Test Conditionals
+        .open('h2').text('If/Else').close()
+        .$if(true)
+          .open('span').text('true branch - normal tag').close()
+          .open('ul')
+            .open('li').text('true branch - nested tag').close()
+          .close()
+        .$else()
+          .open('span').text('false branch - normal tag').close()
+          .open('ul')
+            .open('li').text('false branch - nested tag').close()
+          .close()
+        .close()
+
+        //Test Arrays
+        .open('h2').text('Each').close()
+        .each([0,0])
+          .open('span').text('each - normal tag').close()
+          .open('ul')
+            .open('li').text('each - nested tag').close()
+          .close()
+        .close()
+
+        //Test Combinations
+        .open('h2').text('Combinations').close()
+        .open('h3').text('Each').close()
+        .each([0,0])
+          .open('span').text('outer each - normal tag').close()
+          .open('ul')
+            .open('li').text('outer each - nested tag').close()
+          .close()
+          .each([0,0,0])
+            .open('span').text('inner each - normal tag').close()
+            .open('ul')
+              .open('li').text('inner each - nested tag').close()
+              .$if(true)
+                .open('li').text('inner each true branch - normal tag').close()
+              .$else()
+                .open('li').text('inner each false branch - normal tag').close()
+              .close()
+            .close()
+          .close()
+        .close()
+
+        .open('h3').text('If').close()
+        .$if(true)
+          .each([0,0,0])
+            .open('span').text('true branch each - normal tag').close()
+            .open('ul')
+              .open('li').text('true branch each - nested tag').close()
+            .close()
+          .close()
+        .close()
+
+        .run();
+
+      document.body.appendChild(e);
     </script>
   </body>
 </html>

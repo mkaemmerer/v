@@ -110,7 +110,15 @@ class ArrayWriter extends Writer {
   }
   $if(condition){
     const children = this._children.map(w => w.$if(condition));
-    return new ArrayWriter(this, children);
+    return new IfArrayWriter(this, children);
+  }
+}
+class IfArrayWriter extends ArrayWriter {
+  append(writer){
+    const children = zip(this._children, writer._children, (w1,w2) => {
+      return w1.append(w2);
+    });
+    return new IfArrayWriter(this._parent, children);
   }
   $else(){
     const children = this._children.map(w => w.$else());
