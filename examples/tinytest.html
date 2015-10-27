@@ -13,10 +13,18 @@
     <script type="text/javascript">
     var counter = Bacon.interval(1000, 1)
       .scan(0, function(x,y){ return x+y; });
+    var is_even = counter.map(function(c){
+        return (c % 2) == 0;
+      });
 
     var e = v()
       .open('h2').text('Counter').close()
       .open('span').text(counter).close()
+      .$if(is_even)
+        .open('span').text(' even').close()
+      .$else()
+        .open('span').text(' odd').close()
+      .close()
       .run();
 
       document.body.appendChild(e);

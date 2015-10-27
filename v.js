@@ -65,16 +65,6 @@ class Arr {
   }
 }
 
-class WText {
-  constructor(text){
-    this._text = text;
-  }
-  _build(){
-    const node = this._text
-      .map(text => new VText(text));
-    return Arr.of(node);
-  }
-}
 
 class Writer {
   constructor(parent, children = Arr.empty()){
@@ -98,13 +88,27 @@ class Writer {
   }
   //Control Flow
   $if(condition){
-    return new IfWriter(condition, this);
+    return new IfWriter(cast(condition), this);
   }
   each(array){
     const children = Arr.fromArray(array).map(() => new Writer(this));
     return new ArrayWriter(this, children);
   }
 }
+
+//Text
+class WText {
+  constructor(text){
+    this._text = text;
+  }
+  _build(){
+    const node = this._text
+      .map(text => new VText(text));
+    return Arr.of(node);
+  }
+}
+
+//Tags
 class TagWriter extends Writer {
   constructor(tagName, parent, children = Arr.empty()){
     super(parent, children);
@@ -140,7 +144,9 @@ class ConditionalWriter extends Writer {
     this._condition = condition;
   }
   _build(){
-    return this._condition ? super._build() : Arr.empty();
+    const output = this._condition
+      .flatMapLatest(c => c ? super._build() : Arr.empty());
+    return Arr.of(output).join();
   }
 }
 class IfWriter extends ConditionalWriter {
@@ -149,7 +155,7 @@ class IfWriter extends ConditionalWriter {
   }
   //Control Flow
   $else(){
-    return new ElseWriter(!this._condition, this._parent._append(this));
+    return new ElseWriter(this._condition.not(), this._parent._append(this));
   }
 }
 class ElseWriter extends ConditionalWriter {
