@@ -3,6 +3,14 @@
 const VNode = vdom.VNode;
 const VText = vdom.VText;
 
+//Promote a value up to a Property if necessary
+function cast(value){
+  if(value instanceof Bacon.EventStream) { return value.toProperty(); }
+  if(value instanceof Bacon.Property)    { return value; }
+  return Bacon.constant(value);
+}
+
+//A wrapper for the type Property[Array[x]]
 class Arr {
   constructor(property){
     this._property = property;
@@ -17,6 +25,10 @@ class Arr {
   join(){
     const prop = this._property
       .flatMapLatest(arr => {
+        //Force subscription on inner streams
+        Bacon.combineAsArray(arr.map(a => a._property))
+          .takeUntil(this._property)
+          .onValue(() => void 0);
         return arr.reduce((x,y) => x.concat(y), Arr.empty())._property;
       })
       .toProperty();
@@ -46,7 +58,7 @@ class Arr {
     return new Arr(Bacon.constant([]));
   }
   static of(item){
-    return new Arr(Bacon.constant([item]));
+    return new Arr(item.map(i => [i]));
   }
   static fromArray(array){
     return new Arr(Bacon.constant(array));
@@ -58,7 +70,8 @@ class WText {
     this._text = text;
   }
   _build(){
-    const node = new VText(this._text);
+    const node = this._text
+      .map(text => new VText(text));
     return Arr.of(node);
   }
 }
@@ -78,7 +91,7 @@ class Writer {
     return new TagWriter(tagName, this);
   }
   text(text){
-    return this._append(new WText(text));
+    return this._append(new WText(cast(text)));
   }
   close(){
     return this._parent._append(this);

@@ -11,9 +11,13 @@
     <script src="../dist/v.js"></script>
 
     <script type="text/javascript">
-      var e = v()
-        .open('h2').text('Tiny Test').close()
-        .run();
+    var counter = Bacon.interval(1000, 1)
+      .scan(0, function(x,y){ return x+y; });
+
+    var e = v()
+      .open('h2').text('Counter').close()
+      .open('span').text(counter).close()
+      .run();
 
       document.body.appendChild(e);
     </script>
