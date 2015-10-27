@@ -74,8 +74,8 @@ class Writer {
   _append(writer){
     return new Writer(this._parent, this._children.append(writer));
   }
-  open(tagName){
-    return new TagWriter(tagName, this);
+  open(tagName, properties = {}){
+    return new TagWriter(tagName, properties, this);
   }
   text(text){
     return this._append(new WText(cast(text)));
@@ -110,9 +110,10 @@ class WText {
 
 //Tags
 class TagWriter extends Writer {
-  constructor(tagName, parent, children = Arr.empty()){
+  constructor(tagName, properties, parent, children = Arr.empty()){
     super(parent, children);
-    this._tagName  = tagName;
+    this._tagName    = tagName;
+    this._properties = properties;
   }
   _build(){
     const children = super._build();
@@ -121,7 +122,7 @@ class TagWriter extends Writer {
     );
   }
   _append(writer){
-    return new TagWriter(this._tagName, this._parent, this._children.append(writer));
+    return new TagWriter(this._tagName, this._properties, this._parent, this._children.append(writer));
   }
   run(){
     const vnode   = new VNode(this._tagName);
@@ -173,9 +174,9 @@ class ArrayWriter extends Writer {
     const children = appendArray(this, writer);
     return new ArrayWriter(this._parent, children);
   }
-  open(tagName){
+  open(tagName, properties = {}){
     const children = this._children
-      .map(w => w.open(tagName));
+      .map(w => w.open(tagName, properties));
     return new ArrayWriter(this, children);
   }
   text(text){
