@@ -1,8 +1,5 @@
 /* global vdom, Bacon */
 
-const VNode = vdom.VNode;
-const VText = vdom.VText;
-
 //Promote a value up to a Property if necessary
 function cast(value){
   if(value instanceof Bacon.EventStream) { return value.toProperty(); }
@@ -103,7 +100,7 @@ class WText {
   }
   _build(){
     const node = this._text
-      .map(text => new VText(text));
+      .map(text => new vdom.VText(text));
     return Arr.of(node);
   }
 }
@@ -114,18 +111,21 @@ class TagWriter extends Writer {
     super(parent, children);
     this._tagName    = tagName;
     this._properties = properties;
+
+    //Rename properties for virtual dom
+    this._properties.className = this._properties['class'];
   }
   _build(){
     const children = super._build();
     return children.withArray(cs =>
-      new VNode(this._tagName, {}, cs)
+      new vdom.VNode(this._tagName, this._properties, cs)
     );
   }
   _append(writer){
     return new TagWriter(this._tagName, this._properties, this._parent, this._children.append(writer));
   }
   run(){
-    const vnode   = new VNode(this._tagName);
+    const vnode   = new vdom.VNode(this._tagName);
     const trees   = this._build()._property;
     const patches = trees.diff(vnode, vdom.diff);
 
@@ -149,30 +149,21 @@ class ConditionalWriter extends Writer {
       .flatMapLatest(c => c ? super._build() : Arr.empty());
     return Arr.of(output).join();
   }
+  _append(writer){
+    return new this.constructor(this._condition, this._parent, this._children.append(writer));
+  }
 }
 class IfWriter extends ConditionalWriter {
-  _append(writer){
-    return new IfWriter(this._condition, this._parent, this._children.append(writer));
-  }
-  //Control Flow
   $else(){
-    return new ElseWriter(this._condition.not(), this._parent._append(this));
-  }
-}
-class ElseWriter extends ConditionalWriter {
-  _append(writer){
-    return new ElseWriter(this._condition, this._parent, this._children.append(writer));
+    return new ConditionalWriter(this._condition.not(), this._parent._append(this));
   }
 }
 
 //Each
-function appendArray(a1,a2){
-  return a1._children.zip(a2._children, (w1,w2) => w1._append(w2));
-}
 class ArrayWriter extends Writer {
   _append(writer){
-    const children = appendArray(this, writer);
-    return new ArrayWriter(this._parent, children);
+    const children = this._children.zip(writer._children, (w1, w2) => w1._append(w2));
+    return new this.constructor(this._parent, children);
   }
   open(tagName, properties = {}){
     const children = this._children
@@ -194,10 +185,6 @@ class ArrayWriter extends Writer {
   }
 }
 class IfArrayWriter extends ArrayWriter {
-  _append(writer){
-    const children = appendArray(this, writer);
-    return new IfArrayWriter(this._parent, children);
-  }
   $else(){
     const children = this._children.map(w => w.$else());
     return new ArrayWriter(this._parent._append(this), children);
@@ -207,5 +194,5 @@ class IfArrayWriter extends ArrayWriter {
 
 //Export
 const v = function(){
-  return new TagWriter('div');
+  return new TagWriter('div', {});
 };

@@ -1,5 +1,5 @@
 /**
- * vdom
+ * v
  * @version v0.0.1
  * @author Matt Kaemmerer <matthew.kaemmerer@gmail.com>
  * @license MIT
@@ -15,6 +15,7 @@
 }(this, function(Bacon, vdom) {
   /* global vdom, Bacon */
 
+  //Promote a value up to a Property if necessary
   'use strict';
 
   var _get = function get(_x6, _x7, _x8) { var _again = true; _function: while (_again) { var object = _x6, property = _x7, receiver = _x8; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x6 = parent; _x7 = property; _x8 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
@@ -25,10 +26,6 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-  var VNode = vdom.VNode;
-  var VText = vdom.VText;
-
-  //Promote a value up to a Property if necessary
   function cast(value) {
     if (value instanceof Bacon.EventStream) {
       return value.toProperty();
@@ -209,7 +206,7 @@
       key: '_build',
       value: function _build() {
         var node = this._text.map(function (text) {
-          return new VText(text);
+          return new vdom.VText(text);
         });
         return Arr.of(node);
       }
@@ -229,6 +226,9 @@
       _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, children);
       this._tagName = tagName;
       this._properties = properties;
+
+      //Rename properties for virtual dom
+      this._properties.className = this._properties['class'];
     }
 
     // If/Else
@@ -240,7 +240,7 @@
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this);
         return children.withArray(function (cs) {
-          return new VNode(_this3._tagName, {}, cs);
+          return new vdom.VNode(_this3._tagName, _this3._properties, cs);
         });
       }
     }, {
@@ -251,7 +251,7 @@
     }, {
       key: 'run',
       value: function run() {
-        var vnode = new VNode(this._tagName);
+        var vnode = new vdom.VNode(this._tagName);
         var trees = this._build()._property;
         var patches = trees.diff(vnode, vdom.diff);
 
@@ -289,6 +289,11 @@
         });
         return Arr.of(output).join();
       }
+    }, {
+      key: '_append',
+      value: function _append(writer) {
+        return new this.constructor(this._condition, this._parent, this._children.append(writer));
+      }
     }]);
 
     return ConditionalWriter;
@@ -303,49 +308,17 @@
       _get(Object.getPrototypeOf(IfWriter.prototype), 'constructor', this).apply(this, arguments);
     }
 
-    _createClass(IfWriter, [{
-      key: '_append',
-      value: function _append(writer) {
-        return new IfWriter(this._condition, this._parent, this._children.append(writer));
-      }
+    //Each
 
-      //Control Flow
-    }, {
+    _createClass(IfWriter, [{
       key: '$else',
       value: function $else() {
-        return new ElseWriter(this._condition.not(), this._parent._append(this));
+        return new ConditionalWriter(this._condition.not(), this._parent._append(this));
       }
     }]);
 
     return IfWriter;
   })(ConditionalWriter);
-
-  var ElseWriter = (function (_ConditionalWriter2) {
-    _inherits(ElseWriter, _ConditionalWriter2);
-
-    function ElseWriter() {
-      _classCallCheck(this, ElseWriter);
-
-      _get(Object.getPrototypeOf(ElseWriter.prototype), 'constructor', this).apply(this, arguments);
-    }
-
-    //Each
-
-    _createClass(ElseWriter, [{
-      key: '_append',
-      value: function _append(writer) {
-        return new ElseWriter(this._condition, this._parent, this._children.append(writer));
-      }
-    }]);
-
-    return ElseWriter;
-  })(ConditionalWriter);
-
-  function appendArray(a1, a2) {
-    return a1._children.zip(a2._children, function (w1, w2) {
-      return w1._append(w2);
-    });
-  }
 
   var ArrayWriter = (function (_Writer3) {
     _inherits(ArrayWriter, _Writer3);
@@ -359,8 +332,10 @@
     _createClass(ArrayWriter, [{
       key: '_append',
       value: function _append(writer) {
-        var children = appendArray(this, writer);
-        return new ArrayWriter(this._parent, children);
+        var children = this._children.zip(writer._children, function (w1, w2) {
+          return w1._append(w2);
+        });
+        return new this.constructor(this._parent, children);
       }
     }, {
       key: 'open',
@@ -413,12 +388,6 @@
     //Export
 
     _createClass(IfArrayWriter, [{
-      key: '_append',
-      value: function _append(writer) {
-        var children = appendArray(this, writer);
-        return new IfArrayWriter(this._parent, children);
-      }
-    }, {
       key: '$else',
       value: function $else() {
         var children = this._children.map(function (w) {
@@ -432,7 +401,7 @@
   })(ArrayWriter);
 
   var v = function v() {
-    return new TagWriter('div');
+    return new TagWriter('div', {});
   };
 return v;
 }));
