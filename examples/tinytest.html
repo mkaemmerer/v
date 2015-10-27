@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+
+  <body>
+    <script src="../node_modules/baconjs/dist/Bacon.js"></script>
+    <script src="../node_modules/virtual-dom/dist/virtual-dom.js"></script>
+    <script src="../dist/v.js"></script>
+
+    <script type="text/javascript">
+      var e = v()
+        .open('h2').text('Tiny Test').close()
+        .run();
+
+      document.body.appendChild(e);
+    </script>
+  </body>
+</html>
