@@ -60,9 +60,6 @@ class Arr {
   static of(item){
     return new Arr(item.map(i => [i]));
   }
-  static fromArray(array){
-    return new Arr(Bacon.constant(array));
-  }
 }
 
 
@@ -90,8 +87,11 @@ class Writer {
   $if(condition){
     return new IfWriter(cast(condition), this);
   }
+  $else(){
+    throw new Error('$else called without matching $if');
+  }
   each(array){
-    const children = Arr.fromArray(array).map(() => new Writer(this));
+    const children = new Arr(cast(array)).map(() => new Writer(this));
     return new ArrayWriter(this, children);
   }
 }
@@ -165,11 +165,12 @@ class ElseWriter extends ConditionalWriter {
 }
 
 //Each
+function appendArray(a1,a2){
+  return a1._children.zip(a2._children, (w1,w2) => w1._append(w2));
+}
 class ArrayWriter extends Writer {
   _append(writer){
-    const children = this._children.zip(writer._children, (w1,w2) =>
-      w1._append(w2)
-    );
+    const children = appendArray(this, writer);
     return new ArrayWriter(this._parent, children);
   }
   open(tagName){
@@ -193,9 +194,7 @@ class ArrayWriter extends Writer {
 }
 class IfArrayWriter extends ArrayWriter {
   _append(writer){
-    const children = this._children.zip(writer._children, (w1,w2) => {
-      return w1._append(w2);
-    });
+    const children = appendArray(this, writer);
     return new IfArrayWriter(this._parent, children);
   }
   $else(){
