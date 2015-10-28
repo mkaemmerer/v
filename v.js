@@ -77,6 +77,9 @@ class Writer {
   text(text){
     return this._append(new WText(cast(text)));
   }
+  view(widget){
+    return this._append(new WView(cast(widget)));
+  }
   close(){
     return this._parent._append(this);
   }
@@ -90,6 +93,16 @@ class Writer {
   each(array){
     const children = new Arr(cast(array)).map(() => new Writer(this));
     return new ArrayWriter(this, children);
+  }
+}
+
+//View
+class WView {
+  constructor(view){
+    this._view = view;
+  }
+  _build(){
+    return Arr.of(this._view);
   }
 }
 
@@ -113,7 +126,7 @@ class TagWriter extends Writer {
     this._properties = properties;
 
     //Rename properties for virtual dom
-    this._properties.className = this._properties['class'];
+    if(this._properties['class']){ this._properties.className = this._properties['class']; }
   }
   _build(){
     const children = super._build();
@@ -173,7 +186,12 @@ class ArrayWriter extends Writer {
   text(text){
     const children = this._children
       .map(w => w.text(text));
-    return new ArrayWriter(this._parent, children);
+    return new this.constructor(this._parent, children);
+  }
+  view(widget){
+    const children = this._children
+      .map(w => w.view(widget));
+    return new this.constructor(this._parent, children);
   }
   each(array){
     const children = this._children.map(w => w.each(array));
