@@ -226,9 +226,6 @@
       _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, children);
       this._tagName = tagName;
       this._properties = properties;
-
-      //Rename properties for virtual dom
-      this._properties.className = this._properties['class'];
     }
 
     // If/Else
@@ -240,7 +237,7 @@
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this);
         return children.withArray(function (cs) {
-          return new vdom.VNode(_this3._tagName, _this3._properties, cs);
+          return new vdom.VNode(_this3._tagName, { attributes: _this3._properties }, cs);
         });
       }
     }, {
