@@ -400,8 +400,6 @@
     return IfArrayWriter;
   })(ArrayWriter);
 
-  var v = function v() {
-    return new TagWriter('div', {});
-  };
+  var v = new Writer();
 return v;
 }));

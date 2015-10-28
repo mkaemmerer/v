@@ -19,7 +19,7 @@
       var items = counter.throttle(5000)
         .scan([], function(x,y){ return x.concat(y); });
 
-      var e = v()
+      var e = v.open('div')
         //Text
         .open('h2').text('Counter').close()
         .open('span').text(counter).close()
