@@ -211,6 +211,4 @@ class IfArrayWriter extends ArrayWriter {
 
 
 //Export
-const v = function(){
-  return new TagWriter('div', {});
-};
+const v = new Writer();
