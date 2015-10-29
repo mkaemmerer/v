@@ -35,6 +35,13 @@
     }
     return Bacon.constant(value);
   }
+  function castAll(obj) {
+    var ret = {};
+    for (var _name in obj) {
+      ret[_name] = cast(obj[_name]);
+    }
+    return Bacon.combineTemplate(ret);
+  }
 
   //A wrapper for the type Property[Array[x]]
 
@@ -46,15 +53,15 @@
     }
 
     _createClass(Arr, [{
-      key: 'withArray',
-      value: function withArray(f) {
+      key: '_withArray',
+      value: function _withArray(f) {
         var prop = this._property.map(f);
         return new Arr(prop);
       }
     }, {
       key: 'map',
       value: function map(f) {
-        return this.withArray(function (a) {
+        return this._withArray(function (a) {
           return a.map(f);
         });
       }
@@ -84,7 +91,7 @@
     }, {
       key: 'append',
       value: function append(item) {
-        return this.withArray(function (a) {
+        return this._withArray(function (a) {
           return a.concat([item]);
         });
       }
@@ -235,10 +242,12 @@
       value: function _build() {
         var _this3 = this;
 
-        var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this);
-        return children.withArray(function (cs) {
-          return new vdom.VNode(_this3._tagName, { attributes: _this3._properties }, cs);
-        });
+        var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this)._property;
+        var props = castAll(this._properties);
+
+        return new Arr(children.combine(props, function (cs, props) {
+          return new vdom.VNode(_this3._tagName, { attributes: props }, cs);
+        }));
       }
     }, {
       key: '_append',

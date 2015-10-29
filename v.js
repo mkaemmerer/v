@@ -6,18 +6,25 @@ function cast(value){
   if(value instanceof Bacon.Property)    { return value; }
   return Bacon.constant(value);
 }
+function castAll(obj){
+  const ret = {};
+  for(let name in obj){
+    ret[name] = cast(obj[name]);
+  }
+  return Bacon.combineTemplate(ret);
+}
 
 //A wrapper for the type Property[Array[x]]
 class Arr {
   constructor(property){
     this._property = property;
   }
-  withArray(f){
+  _withArray(f){
     const prop = this._property.map(f);
     return new Arr(prop);
   }
   map(f){
-    return this.withArray(a => a.map(f));
+    return this._withArray(a => a.map(f));
   }
   join(){
     const prop = this._property
@@ -35,7 +42,7 @@ class Arr {
     return this.map(f).join();
   }
   append(item){
-    return this.withArray(a => a.concat([item]));
+    return this._withArray(a => a.concat([item]));
   }
   concat(arr){
     const prop = this._property.combine(arr._property, (a1,a2) => a1.concat(a2));
@@ -113,10 +120,12 @@ class TagWriter extends Writer {
     this._properties = properties;
   }
   _build(){
-    const children = super._build();
-    return children.withArray(cs =>
-      new vdom.VNode(this._tagName, {attributes: this._properties}, cs)
-    );
+    const children = super._build()._property;
+    const props    = castAll(this._properties);
+
+    return new Arr(children.combine(props, (cs, props) =>
+      new vdom.VNode(this._tagName, {attributes: props}, cs)
+    ));
   }
   _append(writer){
     return new TagWriter(this._tagName, this._properties, this._parent, this._children.append(writer));
