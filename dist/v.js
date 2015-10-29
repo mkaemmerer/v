@@ -26,14 +26,28 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-  function cast(value) {
-    if (value instanceof Bacon.EventStream) {
-      return value.toProperty();
+  function cast(_x9, _x10) {
+    var _again2 = true;
+
+    _function2: while (_again2) {
+      var value = _x9,
+          data = _x10;
+      _again2 = false;
+
+      if (value instanceof Bacon.EventStream) {
+        return value.toProperty();
+      }
+      if (value instanceof Bacon.Property) {
+        return value;
+      }
+      if (value instanceof Function) {
+        _x9 = value(data);
+        _x10 = data;
+        _again2 = true;
+        continue _function2;
+      }
+      return Bacon.constant(value);
     }
-    if (value instanceof Bacon.Property) {
-      return value;
-    }
-    return Bacon.constant(value);
   }
 
   //A wrapper for the type Property[Array[x]]
@@ -126,12 +140,13 @@
   })();
 
   var Writer = (function () {
-    function Writer(parent) {
-      var children = arguments.length <= 1 || arguments[1] === undefined ? Arr.empty() : arguments[1];
+    function Writer(parent, data) {
+      var children = arguments.length <= 2 || arguments[2] === undefined ? Arr.empty() : arguments[2];
 
       _classCallCheck(this, Writer);
 
       this._parent = parent;
+      this._data = data;
       this._children = children;
     }
 
@@ -147,19 +162,19 @@
     }, {
       key: '_append',
       value: function _append(writer) {
-        return new Writer(this._parent, this._children.append(writer));
+        return new Writer(this._parent, this._data, this._children.append(writer));
       }
     }, {
       key: 'open',
       value: function open(tagName) {
         var properties = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
-        return new TagWriter(tagName, properties, this);
+        return new TagWriter(tagName, properties, this, this._data);
       }
     }, {
       key: 'text',
       value: function text(_text) {
-        return this._append(new WText(cast(_text)));
+        return this._append(new WText(cast(_text, this._data)));
       }
     }, {
       key: 'close',
@@ -171,7 +186,7 @@
     }, {
       key: '$if',
       value: function $if(condition) {
-        return new IfWriter(cast(condition), this);
+        return new IfWriter(cast(condition, this._data), this, this._data);
       }
     }, {
       key: '$else',
@@ -183,10 +198,10 @@
       value: function each(array) {
         var _this2 = this;
 
-        var children = new Arr(cast(array)).map(function () {
-          return new Writer(_this2);
+        var children = new Arr(cast(array, this._data)).map(function (d) {
+          return new Writer(_this2, d);
         });
-        return new ArrayWriter(this, children);
+        return new ArrayWriter(this, this._data, children);
       }
     }]);
 
@@ -218,12 +233,12 @@
   var TagWriter = (function (_Writer) {
     _inherits(TagWriter, _Writer);
 
-    function TagWriter(tagName, properties, parent) {
-      var children = arguments.length <= 3 || arguments[3] === undefined ? Arr.empty() : arguments[3];
+    function TagWriter(tagName, properties, parent, data) {
+      var children = arguments.length <= 4 || arguments[4] === undefined ? Arr.empty() : arguments[4];
 
       _classCallCheck(this, TagWriter);
 
-      _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, children);
+      _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, data, children);
       this._tagName = tagName;
       this._properties = properties;
     }
@@ -243,7 +258,7 @@
     }, {
       key: '_append',
       value: function _append(writer) {
-        return new TagWriter(this._tagName, this._properties, this._parent, this._children.append(writer));
+        return new TagWriter(this._tagName, this._properties, this._parent, this._data, this._children.append(writer));
       }
     }, {
       key: 'run',
@@ -267,12 +282,12 @@
   var ConditionalWriter = (function (_Writer2) {
     _inherits(ConditionalWriter, _Writer2);
 
-    function ConditionalWriter(condition, parent) {
-      var children = arguments.length <= 2 || arguments[2] === undefined ? Arr.empty() : arguments[2];
+    function ConditionalWriter(condition, parent, data) {
+      var children = arguments.length <= 3 || arguments[3] === undefined ? Arr.empty() : arguments[3];
 
       _classCallCheck(this, ConditionalWriter);
 
-      _get(Object.getPrototypeOf(ConditionalWriter.prototype), 'constructor', this).call(this, parent, children);
+      _get(Object.getPrototypeOf(ConditionalWriter.prototype), 'constructor', this).call(this, parent, data, children);
       this._condition = condition;
     }
 
@@ -289,7 +304,7 @@
     }, {
       key: '_append',
       value: function _append(writer) {
-        return new this.constructor(this._condition, this._parent, this._children.append(writer));
+        return new this.constructor(this._condition, this._parent, this._data, this._children.append(writer));
       }
     }]);
 
@@ -310,7 +325,7 @@
     _createClass(IfWriter, [{
       key: '$else',
       value: function $else() {
-        return new ConditionalWriter(this._condition.not(), this._parent._append(this));
+        return new ConditionalWriter(this._condition.not(), this._parent._append(this), this._data);
       }
     }]);
 
@@ -332,7 +347,7 @@
         var children = this._children.zip(writer._children, function (w1, w2) {
           return w1._append(w2);
         });
-        return new this.constructor(this._parent, children);
+        return new this.constructor(this._parent, this._data, children);
       }
     }, {
       key: 'open',
@@ -350,7 +365,7 @@
         var children = this._children.map(function (w) {
           return w.text(_text2);
         });
-        return new ArrayWriter(this._parent, children);
+        return new ArrayWriter(this._parent, this._data, children);
       }
     }, {
       key: 'each',
@@ -358,7 +373,7 @@
         var children = this._children.map(function (w) {
           return w.each(array);
         });
-        return new ArrayWriter(this, children);
+        return new ArrayWriter(this, this._data, children);
       }
     }, {
       key: '$if',
@@ -366,7 +381,7 @@
         var children = this._children.map(function (w) {
           return w.$if(condition);
         });
-        return new IfArrayWriter(this, children);
+        return new IfArrayWriter(this, this._data, children);
       }
     }]);
 
@@ -390,7 +405,7 @@
         var children = this._children.map(function (w) {
           return w.$else();
         });
-        return new ArrayWriter(this._parent._append(this), children);
+        return new ArrayWriter(this._parent._append(this), this._data, children);
       }
     }]);
 
