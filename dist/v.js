@@ -8,7 +8,7 @@
   if (typeof define === 'function' && define.amd) {
     define(['baconjs', 'virtual-dom'], factory);
   } else if (typeof exports === 'object') {
-    module.exports = factory(require('baconjs'), require('virutal-dom'));
+    module.exports = factory(require('baconjs'), require('virtual-dom'));
   } else {
     root.v = factory(root.Bacon, root.virtualDom);
   }
