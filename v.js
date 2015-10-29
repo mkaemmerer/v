@@ -124,14 +124,11 @@ class TagWriter extends Writer {
     super(parent, children);
     this._tagName    = tagName;
     this._properties = properties;
-
-    //Rename properties for virtual dom
-    if(this._properties['class']){ this._properties.className = this._properties['class']; }
   }
   _build(){
     const children = super._build();
     return children.withArray(cs =>
-      new vdom.VNode(this._tagName, this._properties, cs)
+      new vdom.VNode(this._tagName, {attributes: this._properties}, cs)
     );
   }
   _append(writer){

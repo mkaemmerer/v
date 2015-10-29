@@ -8,7 +8,7 @@
   if (typeof define === 'function' && define.amd) {
     define(['baconjs', 'virtual-dom'], factory);
   } else if (typeof exports === 'object') {
-    module.exports = factory(require('baconjs'), require('virutal-dom'));
+    module.exports = factory(require('baconjs'), require('virtual-dom'));
   } else {
     root.v = factory(root.Bacon, root.virtualDom);
   }
@@ -135,7 +135,7 @@
       this._children = children;
     }
 
-    //Text
+    //View
 
     _createClass(Writer, [{
       key: '_build',
@@ -160,6 +160,11 @@
       key: 'text',
       value: function text(_text) {
         return this._append(new WText(cast(_text)));
+      }
+    }, {
+      key: 'view',
+      value: function view(widget) {
+        return this._append(new WView(cast(widget)));
       }
     }, {
       key: 'close',
@@ -191,6 +196,25 @@
     }]);
 
     return Writer;
+  })();
+
+  var WView = (function () {
+    function WView(view) {
+      _classCallCheck(this, WView);
+
+      this._view = view;
+    }
+
+    //Text
+
+    _createClass(WView, [{
+      key: '_build',
+      value: function _build() {
+        return Arr.of(this._view);
+      }
+    }]);
+
+    return WView;
   })();
 
   var WText = (function () {
@@ -226,9 +250,6 @@
       _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, children);
       this._tagName = tagName;
       this._properties = properties;
-
-      //Rename properties for virtual dom
-      this._properties.className = this._properties['class'];
     }
 
     // If/Else
@@ -240,7 +261,7 @@
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this);
         return children.withArray(function (cs) {
-          return new vdom.VNode(_this3._tagName, _this3._properties, cs);
+          return new vdom.VNode(_this3._tagName, { attributes: _this3._properties }, cs);
         });
       }
     }, {
@@ -353,7 +374,15 @@
         var children = this._children.map(function (w) {
           return w.text(_text2);
         });
-        return new ArrayWriter(this._parent, children);
+        return new this.constructor(this._parent, children);
+      }
+    }, {
+      key: 'view',
+      value: function view(widget) {
+        var children = this._children.map(function (w) {
+          return w.view(widget);
+        });
+        return new this.constructor(this._parent, children);
       }
     }, {
       key: 'each',

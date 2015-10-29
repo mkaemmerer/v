@@ -33,7 +33,7 @@ var module_options = {
       {
         name:   'vdom',
         amd:    'virtual-dom',
-        cjs:    'virutal-dom',
+        cjs:    'virtual-dom',
         global: 'virtualDom',
         param:  'vdom'
       },
