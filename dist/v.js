@@ -18,7 +18,7 @@
   //Promote a value up to a Property if necessary
   'use strict';
 
-  var _get = function get(_x6, _x7, _x8) { var _again = true; _function: while (_again) { var object = _x6, property = _x7, receiver = _x8; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x6 = parent; _x7 = property; _x8 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+  var _get = function get(_x4, _x5, _x6) { var _again = true; _function: while (_again) { var object = _x4, property = _x5, receiver = _x6; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x4 = parent; _x5 = property; _x6 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
   var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
@@ -42,6 +42,7 @@
     }
     return Bacon.combineTemplate(ret);
   }
+  //Modify a properties object into the format needed by virtual-dom
   function fixProps(props) {
     if (props.checked === false) {
       delete props.checked;
@@ -49,6 +50,14 @@
     var ret = { attributes: props };
     ret.value = props.value;
     return ret;
+  }
+  function defaults(obj1, obj2) {
+    for (var name in obj2) {
+      if (!obj1.hasOwnProperty(name)) {
+        obj1[name] = obj2[name];
+      }
+    }
+    return obj1;
   }
 
   //A wrapper for the type Property[Array[x]]
@@ -141,11 +150,12 @@
   })();
 
   var Writer = (function () {
-    function Writer(parent) {
-      var children = arguments.length <= 1 || arguments[1] === undefined ? Arr.empty() : arguments[1];
+    function Writer(data, parent) {
+      var children = arguments.length <= 2 || arguments[2] === undefined ? Arr.empty() : arguments[2];
 
       _classCallCheck(this, Writer);
 
+      this._data = data;
       this._parent = parent;
       this._children = children;
     }
@@ -162,14 +172,18 @@
     }, {
       key: '_append',
       value: function _append(writer) {
-        return new Writer(this._parent, this._children.append(writer));
+        return new this.constructor(this._data, this._parent, this._children.append(writer));
       }
     }, {
       key: 'open',
       value: function open(tagName) {
         var properties = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
 
-        return new TagWriter(tagName, properties, this);
+        var data = defaults({ tagName: tagName, properties: properties }, this._data);
+        if (tagName === 'svg') {
+          data.namespace = 'http://www.w3.org/2000/svg';
+        }
+        return new TagWriter(data, this);
       }
     }, {
       key: 'text',
@@ -186,7 +200,8 @@
     }, {
       key: '$if',
       value: function $if(condition) {
-        return new IfWriter(cast(condition), this);
+        var data = defaults({ condition: cast(condition) }, this._data);
+        return new IfWriter(data, this);
       }
     }, {
       key: '$else',
@@ -201,7 +216,7 @@
         var children = new Arr(cast(array)).map(function () {
           return new Writer(_this2);
         });
-        return new ArrayWriter(this, children);
+        return new ArrayWriter(this._data, this, children);
       }
     }]);
 
@@ -233,14 +248,10 @@
   var TagWriter = (function (_Writer) {
     _inherits(TagWriter, _Writer);
 
-    function TagWriter(tagName, properties, parent) {
-      var children = arguments.length <= 3 || arguments[3] === undefined ? Arr.empty() : arguments[3];
-
+    function TagWriter() {
       _classCallCheck(this, TagWriter);
 
-      _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).call(this, parent, children);
-      this._tagName = tagName;
-      this._properties = properties;
+      _get(Object.getPrototypeOf(TagWriter.prototype), 'constructor', this).apply(this, arguments);
     }
 
     // If/Else
@@ -248,24 +259,26 @@
     _createClass(TagWriter, [{
       key: '_build',
       value: function _build() {
-        var _this3 = this;
+        var _data = this._data;
+        var tagName = _data.tagName;
+        var properties = _data.properties;
+        var namespace = _data.namespace;
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this)._property;
-        var props = castAll(this._properties);
+        var props = castAll(properties);
 
         return new Arr(children.combine(props, function (cs, props) {
-          return new vdom.VNode(_this3._tagName, fixProps(props), cs);
+          return new vdom.VNode(tagName, fixProps(props), cs, undefined, namespace);
         }));
-      }
-    }, {
-      key: '_append',
-      value: function _append(writer) {
-        return new TagWriter(this._tagName, this._properties, this._parent, this._children.append(writer));
       }
     }, {
       key: 'run',
       value: function run() {
-        var vnode = new vdom.VNode(this._tagName);
+        var _data2 = this._data;
+        var tagName = _data2.tagName;
+        var namespace = _data2.namespace;
+
+        var vnode = new vdom.VNode(tagName, {}, [], undefined, namespace);
         var trees = this._build()._property;
         var patches = trees.diff(vnode, vdom.diff);
 
@@ -284,29 +297,21 @@
   var ConditionalWriter = (function (_Writer2) {
     _inherits(ConditionalWriter, _Writer2);
 
-    function ConditionalWriter(condition, parent) {
-      var children = arguments.length <= 2 || arguments[2] === undefined ? Arr.empty() : arguments[2];
-
+    function ConditionalWriter() {
       _classCallCheck(this, ConditionalWriter);
 
-      _get(Object.getPrototypeOf(ConditionalWriter.prototype), 'constructor', this).call(this, parent, children);
-      this._condition = condition;
+      _get(Object.getPrototypeOf(ConditionalWriter.prototype), 'constructor', this).apply(this, arguments);
     }
 
     _createClass(ConditionalWriter, [{
       key: '_build',
       value: function _build() {
-        var _this4 = this;
+        var _this3 = this;
 
-        var output = this._condition.flatMapLatest(function (c) {
-          return c ? _get(Object.getPrototypeOf(ConditionalWriter.prototype), '_build', _this4).call(_this4) : Arr.empty();
+        var output = this._data.condition.flatMapLatest(function (c) {
+          return c ? _get(Object.getPrototypeOf(ConditionalWriter.prototype), '_build', _this3).call(_this3) : Arr.empty();
         });
         return Arr.of(output).join();
-      }
-    }, {
-      key: '_append',
-      value: function _append(writer) {
-        return new this.constructor(this._condition, this._parent, this._children.append(writer));
       }
     }]);
 
@@ -327,7 +332,9 @@
     _createClass(IfWriter, [{
       key: '$else',
       value: function $else() {
-        return new ConditionalWriter(this._condition.not(), this._parent._append(this));
+        var condition = this._data.condition;
+        var data = defaults({ condition: condition.not() }, this._data);
+        return new ConditionalWriter(data, this._parent._append(this));
       }
     }]);
 
@@ -349,7 +356,7 @@
         var children = this._children.zip(writer._children, function (w1, w2) {
           return w1._append(w2);
         });
-        return new this.constructor(this._parent, children);
+        return new this.constructor(this._data, this._parent, children);
       }
     }, {
       key: 'open',
@@ -359,7 +366,7 @@
         var children = this._children.map(function (w) {
           return w.open(tagName, properties);
         });
-        return new ArrayWriter(this, children);
+        return new ArrayWriter(this._data, this, children);
       }
     }, {
       key: 'text',
@@ -367,7 +374,7 @@
         var children = this._children.map(function (w) {
           return w.text(_text2);
         });
-        return new ArrayWriter(this._parent, children);
+        return new ArrayWriter(this._data, this._parent, children);
       }
     }, {
       key: 'each',
@@ -375,7 +382,7 @@
         var children = this._children.map(function (w) {
           return w.each(array);
         });
-        return new ArrayWriter(this, children);
+        return new ArrayWriter(this._data, this, children);
       }
     }, {
       key: '$if',
@@ -383,7 +390,7 @@
         var children = this._children.map(function (w) {
           return w.$if(condition);
         });
-        return new IfArrayWriter(this, children);
+        return new IfArrayWriter(this._data, this, children);
       }
     }]);
 
@@ -407,7 +414,7 @@
         var children = this._children.map(function (w) {
           return w.$else();
         });
-        return new ArrayWriter(this._parent._append(this), children);
+        return new ArrayWriter(this._data, this._parent._append(this), children);
       }
     }]);
 
