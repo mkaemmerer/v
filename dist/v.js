@@ -42,6 +42,14 @@
     }
     return Bacon.combineTemplate(ret);
   }
+  function fixProps(props) {
+    if (props.checked === false) {
+      delete props.checked;
+    }
+    var ret = { attributes: props };
+    ret.value = props.value;
+    return ret;
+  }
 
   //A wrapper for the type Property[Array[x]]
 
@@ -246,7 +254,7 @@
         var props = castAll(this._properties);
 
         return new Arr(children.combine(props, function (cs, props) {
-          return new vdom.VNode(_this3._tagName, { attributes: props }, cs);
+          return new vdom.VNode(_this3._tagName, fixProps(props), cs);
         }));
       }
     }, {

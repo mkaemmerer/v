@@ -13,6 +13,12 @@ function castAll(obj){
   }
   return Bacon.combineTemplate(ret);
 }
+function fixProps(props){
+  if(props.checked === false){ delete props.checked; }
+  let ret = {attributes: props};
+  ret.value = props.value;
+  return ret;
+}
 
 //A wrapper for the type Property[Array[x]]
 class Arr {
@@ -124,7 +130,7 @@ class TagWriter extends Writer {
     const props    = castAll(this._properties);
 
     return new Arr(children.combine(props, (cs, props) =>
-      new vdom.VNode(this._tagName, {attributes: props}, cs)
+      new vdom.VNode(this._tagName, fixProps(props), cs)
     ));
   }
   _append(writer){
