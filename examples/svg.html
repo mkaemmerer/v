@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+
+  <body>
+    <script src="../node_modules/baconjs/dist/Bacon.js"></script>
+    <script src="../node_modules/virtual-dom/dist/virtual-dom.js"></script>
+    <script src="../dist/v.js"></script>
+
+    <h2>Click to create circles</h2>
+
+    <script type="text/javascript">
+      var circles = Bacon.Bus();
+
+      var e = v.open('svg', {'width': 400, 'height': 300, 'style': 'border: 1px solid gray;'})
+        .open('g')
+          .each(circles)
+            .open('circle', {'cx': function(e){ return e.x; }, 'cy': function(e){ return e.y; }, r: 10}).close()
+          .close()
+        .close()
+        .run();
+
+      var clicks = Bacon.fromEvent(e, 'click')
+        .map(function(evt){ return {x: evt.offsetX, y: evt.offsetY}; })
+        .scan([], function(x,y){ return x.concat(y); })
+        .log();
+
+      circles.plug(clicks);
+
+      document.body.appendChild(e);
+    </script>
+  </body>
+</html>
