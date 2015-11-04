@@ -26,19 +26,33 @@
 
   function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-  function cast(value) {
-    if (value instanceof Bacon.EventStream) {
-      return value.toProperty();
+  function cast(_x7, _x8) {
+    var _again2 = true;
+
+    _function2: while (_again2) {
+      var value = _x7,
+          data = _x8;
+      _again2 = false;
+
+      if (value instanceof Bacon.EventStream) {
+        return value.toProperty();
+      }
+      if (value instanceof Bacon.Property) {
+        return value;
+      }
+      if (value instanceof Function) {
+        _x7 = value(data);
+        _x8 = data;
+        _again2 = true;
+        continue _function2;
+      }
+      return Bacon.constant(value);
     }
-    if (value instanceof Bacon.Property) {
-      return value;
-    }
-    return Bacon.constant(value);
   }
-  function castAll(obj) {
+  function castAll(obj, data) {
     var ret = {};
     for (var _name in obj) {
-      ret[_name] = cast(obj[_name]);
+      ret[_name] = cast(obj[_name], data);
     }
     return Bacon.combineTemplate(ret);
   }
@@ -155,7 +169,8 @@
 
       _classCallCheck(this, Writer);
 
-      this._data = data;
+      this._data = data || {};
+      this._item = this._data.item;
       this._parent = parent;
       this._children = children;
     }
@@ -188,7 +203,7 @@
     }, {
       key: 'text',
       value: function text(_text) {
-        return this._append(new WText(cast(_text)));
+        return this._append(new WText(cast(_text, this._item)));
       }
     }, {
       key: 'close',
@@ -200,7 +215,7 @@
     }, {
       key: '$if',
       value: function $if(condition) {
-        var data = defaults({ condition: cast(condition) }, this._data);
+        var data = defaults({ condition: cast(condition, this._item) }, this._data);
         return new IfWriter(data, this);
       }
     }, {
@@ -213,8 +228,8 @@
       value: function each(array) {
         var _this2 = this;
 
-        var children = new Arr(cast(array)).map(function () {
-          return new Writer(_this2);
+        var children = new Arr(cast(array, this._item)).map(function (d) {
+          return new Writer(defaults({ item: d }, _this2._data), _this2);
         });
         return new ArrayWriter(this._data, this, children);
       }
@@ -263,9 +278,10 @@
         var tagName = _data.tagName;
         var properties = _data.properties;
         var namespace = _data.namespace;
+        var item = _data.item;
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this)._property;
-        var props = castAll(properties);
+        var props = castAll(properties, item);
 
         return new Arr(children.combine(props, function (cs, props) {
           return new vdom.VNode(tagName, fixProps(props), cs, undefined, namespace);

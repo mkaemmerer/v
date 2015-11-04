@@ -1,15 +1,16 @@
 /* global vdom, Bacon */
 
 //Promote a value up to a Property if necessary
-function cast(value){
+function cast(value, data){
   if(value instanceof Bacon.EventStream) { return value.toProperty(); }
   if(value instanceof Bacon.Property)    { return value; }
+  if(value instanceof Function)          { return cast(value(data), data); }
   return Bacon.constant(value);
 }
-function castAll(obj){
+function castAll(obj, data){
   const ret = {};
   for(let name in obj){
-    ret[name] = cast(obj[name]);
+    ret[name] = cast(obj[name], data);
   }
   return Bacon.combineTemplate(ret);
 }
@@ -84,7 +85,8 @@ class Arr {
 
 class Writer {
   constructor(data, parent, children = Arr.empty()){
-    this._data     = data;
+    this._data     = data || {};
+    this._item     = this._data.item;
     this._parent   = parent;
     this._children = children;
   }
@@ -100,21 +102,22 @@ class Writer {
     return new TagWriter(data, this);
   }
   text(text){
-    return this._append(new WText(cast(text)));
+    return this._append(new WText(cast(text, this._item)));
   }
   close(){
     return this._parent._append(this);
   }
   //Control Flow
   $if(condition){
-    const data = defaults({condition: cast(condition)}, this._data);
+    const data = defaults({condition: cast(condition, this._item)}, this._data);
     return new IfWriter(data, this);
   }
   $else(){
     throw new Error('$else called without matching $if');
   }
   each(array){
-    const children = new Arr(cast(array)).map(() => new Writer(this));
+    const children = new Arr(cast(array, this._item))
+      .map(d => new Writer(defaults({item: d}, this._data), this));
     return new ArrayWriter(this._data, this, children);
   }
 }
@@ -134,9 +137,9 @@ class WText {
 //Tags
 class TagWriter extends Writer {
   _build(){
-    const {tagName, properties, namespace} = this._data;
+    const {tagName, properties, namespace, item} = this._data;
     const children = super._build()._property;
-    const props    = castAll(properties);
+    const props    = castAll(properties, item);
 
     return new Arr(children.combine(props, (cs, props) =>
       new vdom.VNode(tagName, fixProps(props), cs, undefined, namespace)
