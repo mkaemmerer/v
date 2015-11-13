@@ -14,7 +14,7 @@ For more examples, see the examples/ directory.
 ## API
 
 #### Creating tags
-```typescript:
+```typescript
 v.open(tagName: string, properties: Object<<string>>)
 ```
 The open method creates a new DOM with the given tag name.
@@ -25,7 +25,7 @@ You can think of `open('div')` as similar to the HTML snippet `<div>` --
 until you close the div, tags you write afterwards will be children of the div.
 
 
-```typescript:
+```typescript
 v.close()
 ```
 The close method returns a new `v` object for the *parent* tag.
@@ -33,7 +33,7 @@ It can be thought of as *closing* the current tag, like you would by writing `</
 
 
 By using `open` in combination with `close`, you can create DOM trees using a style that resembles the way you'd write HTML.
-```javascript:
+```javascript
   var list = v
     .open('div')
       .open('h1').text('A list of cool things').close()
@@ -58,26 +58,26 @@ By using `open` in combination with `close`, you can create DOM trees using a st
 
 
 #### Creating text
-```typescript:
+```typescript
 v.text(text: <<string>>)
 ```
 Use `text` to insert escaped text into an element.
 
 
 #### Control flow
-```typescript:
+```typescript
 v.$if(condition: <<boolean>>)
 ```
 Use `$if` to create tags only when the condition is true.
 
 
-```typescript:
+```typescript
 v.$else()
 ```
 Use `$else` following a call to `$if`, to create tags only when the condition is false.
 
 
-```typescript:
+```typescript
 v.each(array: <<array>>)
 ```
 Use the `each` method to iterate over an array, creating tags for each element.
@@ -85,7 +85,7 @@ Within an `each` block, you can use functions to access the current array elemen
 
 
 #### Running
-```typescript:
+```typescript
 v.run()
 ```
 
@@ -114,19 +114,19 @@ $ npm install v
 There are three ways you can use `v`:
 
 As a commonjs module
-```javascript:
+```javascript
 var v = require('v');
 ```
 
 As an amd module:
-```javascript:
+```javascript
 define(['v'], function(v){
   //...
 });
 ```
 
 From `window`. If you are not using a module loader, `v` is exported to `window`, so it is still available using a &lt;script&gt; tag. Make sure you load `Bacon` and `virtualDom` before `v`.
-```
+```javascript
 var v = window.v;
 ```
 
