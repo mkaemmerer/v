@@ -79,7 +79,7 @@ define(['v'], function(v){
 ```
 
 From `window`. If you are not using a module loader, `v` is exported to `window`, so it is still available using a &lt;script&gt; tag. Make sure you load `Bacon` and `virtualDom` before `v`.
-```
+```javascript
 var v = window.v;
 ```
 
