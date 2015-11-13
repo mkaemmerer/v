@@ -16,7 +16,6 @@
     "gulp": "^3.9.0",
     "gulp-babel": "^5.3.0",
     "gulp-header": "^1.7.1",
-    "gulp-indent": "^1.0.1",
-    "gulp-umd": "^0.2.0"
+    "gulp-sourcemaps": "^1.6.0"
   }
 }
