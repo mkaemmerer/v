@@ -25,8 +25,7 @@
 
       var clicks = Bacon.fromEvent(e, 'click')
         .map(function(evt){ return {x: evt.offsetX, y: evt.offsetY}; })
-        .scan([], function(x,y){ return x.concat(y); })
-        .log();
+        .scan([], function(x,y){ return x.concat(y); });
 
       circles.plug(clicks);
 

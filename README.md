@@ -96,6 +96,8 @@ Compared to `h`, `v` has a much cleaner interface for handling control flow logi
 `v` 💖 `Bacon`!
 
 `v` is built to take advantage of functional reactive programming.
+You can use properties directly in your templates, without having to handle subscription yourself.
+`v` will take care of subscribing as necessary to keep your template up to date.
 Rather than defining your templates as snapshots in time, `v` encourages you view your templates as *elements that evolve over time*. (i.e. think `Property<data> -> Property<VTree>`, instead of `data -> VTree`).
 
 You can also use `v` to automatically patch your elements as their inputs update, using `run`.
