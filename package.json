@@ -9,7 +9,7 @@
   "author": "Matt Kaemmerer <matthew.kaemmerer@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "baconjs": "^0.7.77",
+    "baconjs": "^0.7.83",
     "virtual-dom": "^2.1.1"
   },
   "devDependencies": {
