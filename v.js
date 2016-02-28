@@ -1,4 +1,4 @@
-/* global vdom, Bacon */
+/* global Bacon, vdom */
 
 //Promote a value up to a Property if necessary
 function cast(value, data){
@@ -17,12 +17,28 @@ function castAll(obj, data){
 //Modify a properties object into the format needed by virtual-dom
 function fixProps(props){
   if(props.checked === false){ delete props.checked; }
-  let ret = {attributes: props};
-  ret.value = props.value;
+  if(props.disabled === false){ delete props.disabled; }
+
+  let ret = { attributes: {}, value: props.value };
+  for(let name in props){
+    if(props.hasOwnProperty(name)){
+      if(isHook(props[name]) || name === 'key'){
+        ret[name] = props[name];
+      } else {
+        ret.attributes[name] = props[name];
+      }
+    }
+  }
+
   return ret;
 }
+function isHook(hook) {
+    return hook &&
+      (typeof hook.hook   === 'function' && !hook.hasOwnProperty('hook') ||
+       typeof hook.unhook === 'function' && !hook.hasOwnProperty('unhook'));
+}
 function defaults(obj1, obj2){
-  for(var name in obj2){
+  for(let name in obj2){
     if(!obj1.hasOwnProperty(name)){
       obj1[name] = obj2[name];
     }
@@ -44,14 +60,10 @@ class Arr {
   }
   join(){
     const prop = this._property
-      .flatMapLatest(arr => {
-        //Force subscription on inner streams
-        Bacon.combineAsArray(arr.map(a => a._property))
-          .takeUntil(this._property)
-          .onValue(() => void 0);
-        return arr.reduce((x,y) => x.concat(y), Arr.empty())._property;
-      })
+      .flatMapLatest(arr => Bacon.combineAsArray(arr.map(a => a._property)))
+      .map(arr => [].concat.apply([], arr))
       .toProperty();
+
     return new Arr(prop);
   }
   flatMap(f){
@@ -85,7 +97,7 @@ class Arr {
 
 class Writer {
   constructor(data, parent, children = Arr.empty()){
-    this._data     = data || {};
+    this._data     = data || { tags: {} };
     this._item     = this._data.item;
     this._parent   = parent;
     this._children = children;
@@ -95,6 +107,10 @@ class Writer {
   }
   _append(writer){
     return new this.constructor(this._data, this._parent, this._children.append(writer));
+  }
+  append(writer){
+    const arr = Arr.of(cast(writer, this._item));
+    return new this.constructor(this._data, this._parent, this._children.concat(arr));
   }
   open(tagName, properties = {}){
     const data = defaults({tagName: tagName, properties: properties}, this._data);
@@ -139,18 +155,19 @@ class TagWriter extends Writer {
   _build(){
     const {tagName, properties, namespace, item} = this._data;
     const children = super._build()._property;
-    const props    = castAll(properties, item);
+    const props    = castAll(properties, item)
+      .map(fixProps);
 
-    return new Arr(children.combine(props, (cs, props) =>
-      new vdom.VNode(tagName, fixProps(props), cs, undefined, namespace)
+    return Arr.of(children.combine(props, (cs, props) =>
+      new vdom.VNode(tagName, props, cs, props.key, namespace)
     ));
   }
   run(){
     const {tagName, namespace} = this._data;
     const vnode   = new vdom.VNode(tagName, {}, [], undefined, namespace);
-    const trees   = this._build()._property;
+    const trees   = this._build()._property
+      .map(tags => tags[0]);
     const patches = trees.diff(vnode, vdom.diff);
-
     const node    = vdom.create(vnode);
     patches.onValue(patch => {
       vdom.patch(node, patch);
@@ -179,7 +196,13 @@ class IfWriter extends ConditionalWriter {
 //Each
 class ArrayWriter extends Writer {
   _append(writer){
-    const children = this._children.zip(writer._children, (w1, w2) => w1._append(w2));
+    const children = this._children
+      .zip(writer._children, (w1, w2) => w1._append(w2));
+    return new this.constructor(this._data, this._parent, children);
+  }
+  append(writer){
+    const children = this._children
+      .map(w => w.append(writer));
     return new this.constructor(this._data, this._parent, children);
   }
   open(tagName, properties = {}){
@@ -190,20 +213,23 @@ class ArrayWriter extends Writer {
   text(text){
     const children = this._children
       .map(w => w.text(text));
-    return new ArrayWriter(this._data, this._parent, children);
+    return new this.constructor(this._data, this._parent, children);
   }
   each(array){
-    const children = this._children.map(w => w.each(array));
+    const children = this._children
+      .map(w => w.each(array));
     return new ArrayWriter(this._data, this, children);
   }
   $if(condition){
-    const children = this._children.map(w => w.$if(condition));
+    const children = this._children
+      .map(w => w.$if(condition));
     return new IfArrayWriter(this._data, this, children);
   }
 }
 class IfArrayWriter extends ArrayWriter {
   $else(){
-    const children = this._children.map(w => w.$else());
+    const children = this._children
+      .map(w => w.$else());
     return new ArrayWriter(this._data, this._parent._append(this), children);
   }
 }
