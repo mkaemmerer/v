@@ -13,7 +13,7 @@
     root.v = factory(root.Bacon, root.virtualDom);
   }
 }(this, function(Bacon, vdom) {
-  /* global vdom, Bacon */
+  /* global Bacon, vdom */
 
   //Promote a value up to a Property if necessary
   'use strict';
@@ -61,14 +61,30 @@
     if (props.checked === false) {
       delete props.checked;
     }
-    var ret = { attributes: props };
-    ret.value = props.value;
+    if (props.disabled === false) {
+      delete props.disabled;
+    }
+
+    var ret = { attributes: {}, value: props.value };
+    for (var _name2 in props) {
+      if (props.hasOwnProperty(_name2)) {
+        if (isHook(props[_name2]) || _name2 === 'key') {
+          ret[_name2] = props[_name2];
+        } else {
+          ret.attributes[_name2] = props[_name2];
+        }
+      }
+    }
+
     return ret;
   }
+  function isHook(hook) {
+    return hook && (typeof hook.hook === 'function' && !hook.hasOwnProperty('hook') || typeof hook.unhook === 'function' && !hook.hasOwnProperty('unhook'));
+  }
   function defaults(obj1, obj2) {
-    for (var name in obj2) {
-      if (!obj1.hasOwnProperty(name)) {
-        obj1[name] = obj2[name];
+    for (var _name3 in obj2) {
+      if (!obj1.hasOwnProperty(_name3)) {
+        obj1[_name3] = obj2[_name3];
       }
     }
     return obj1;
@@ -99,19 +115,14 @@
     }, {
       key: 'join',
       value: function join() {
-        var _this = this;
-
         var prop = this._property.flatMapLatest(function (arr) {
-          //Force subscription on inner streams
-          Bacon.combineAsArray(arr.map(function (a) {
+          return Bacon.combineAsArray(arr.map(function (a) {
             return a._property;
-          })).takeUntil(_this._property).onValue(function () {
-            return void 0;
-          });
-          return arr.reduce(function (x, y) {
-            return x.concat(y);
-          }, Arr.empty())._property;
+          }));
+        }).map(function (arr) {
+          return [].concat.apply([], arr);
         }).toProperty();
+
         return new Arr(prop);
       }
     }, {
@@ -169,7 +180,7 @@
 
       _classCallCheck(this, Writer);
 
-      this._data = data || {};
+      this._data = data || { tags: {} };
       this._item = this._data.item;
       this._parent = parent;
       this._children = children;
@@ -188,6 +199,12 @@
       key: '_append',
       value: function _append(writer) {
         return new this.constructor(this._data, this._parent, this._children.append(writer));
+      }
+    }, {
+      key: 'append',
+      value: function append(writer) {
+        var arr = Arr.of(cast(writer, this._item));
+        return new this.constructor(this._data, this._parent, this._children.concat(arr));
       }
     }, {
       key: 'open',
@@ -226,10 +243,10 @@
     }, {
       key: 'each',
       value: function each(array) {
-        var _this2 = this;
+        var _this = this;
 
         var children = new Arr(cast(array, this._item)).map(function (d) {
-          return new Writer(defaults({ item: d }, _this2._data), _this2);
+          return new Writer(defaults({ item: d }, _this._data), _this);
         });
         return new ArrayWriter(this._data, this, children);
       }
@@ -281,10 +298,10 @@
         var item = _data.item;
 
         var children = _get(Object.getPrototypeOf(TagWriter.prototype), '_build', this).call(this)._property;
-        var props = castAll(properties, item);
+        var props = castAll(properties, item).map(fixProps);
 
-        return new Arr(children.combine(props, function (cs, props) {
-          return new vdom.VNode(tagName, fixProps(props), cs, undefined, namespace);
+        return Arr.of(children.combine(props, function (cs, props) {
+          return new vdom.VNode(tagName, props, cs, props.key, namespace);
         }));
       }
     }, {
@@ -295,9 +312,10 @@
         var namespace = _data2.namespace;
 
         var vnode = new vdom.VNode(tagName, {}, [], undefined, namespace);
-        var trees = this._build()._property;
+        var trees = this._build()._property.map(function (tags) {
+          return tags[0];
+        });
         var patches = trees.diff(vnode, vdom.diff);
-
         var node = vdom.create(vnode);
         patches.onValue(function (patch) {
           vdom.patch(node, patch);
@@ -322,10 +340,10 @@
     _createClass(ConditionalWriter, [{
       key: '_build',
       value: function _build() {
-        var _this3 = this;
+        var _this2 = this;
 
         var output = this._data.condition.flatMapLatest(function (c) {
-          return c ? _get(Object.getPrototypeOf(ConditionalWriter.prototype), '_build', _this3).call(_this3) : Arr.empty();
+          return c ? _get(Object.getPrototypeOf(ConditionalWriter.prototype), '_build', _this2).call(_this2) : Arr.empty();
         });
         return Arr.of(output).join();
       }
@@ -375,6 +393,14 @@
         return new this.constructor(this._data, this._parent, children);
       }
     }, {
+      key: 'append',
+      value: function append(writer) {
+        var children = this._children.map(function (w) {
+          return w.append(writer);
+        });
+        return new this.constructor(this._data, this._parent, children);
+      }
+    }, {
       key: 'open',
       value: function open(tagName) {
         var properties = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
@@ -390,7 +416,7 @@
         var children = this._children.map(function (w) {
           return w.text(_text2);
         });
-        return new ArrayWriter(this._data, this._parent, children);
+        return new this.constructor(this._data, this._parent, children);
       }
     }, {
       key: 'each',
