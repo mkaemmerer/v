@@ -59,10 +59,7 @@ document.body.appendChild(e);
 
 
 ## Get it
-Install `v` through npm
-```
-$ npm install v --save
-```
+TODO: register on npm (find a name that isn't taken)
 
 There are three ways you can use `v`:
 
