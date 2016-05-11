@@ -347,6 +347,16 @@
         });
         return Arr.of(output).join();
       }
+    }, {
+      key: 'append',
+      value: function append(writer) {
+        var _this3 = this;
+
+        var w = this._data.condition.flatMapLatest(function (c) {
+          return c ? cast(writer, _this3._item) : v;
+        });
+        return new this.constructor(this._data, this._parent, this._children.concat(Arr.of(w)));
+      }
     }]);
 
     return ConditionalWriter;

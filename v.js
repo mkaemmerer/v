@@ -184,6 +184,11 @@ class ConditionalWriter extends Writer {
       .flatMapLatest(c => c ? super._build() : Arr.empty());
     return Arr.of(output).join();
   }
+  append(writer){
+    const w = this._data.condition
+      .flatMapLatest(c => c ? cast(writer, this._item) : v);
+    return new this.constructor(this._data, this._parent, this._children.concat(Arr.of(w)));
+  }
 }
 class IfWriter extends ConditionalWriter {
   $else(){
